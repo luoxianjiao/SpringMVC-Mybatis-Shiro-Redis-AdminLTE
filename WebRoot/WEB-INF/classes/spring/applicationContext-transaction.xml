@@ -1,0 +1,56 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+		http://www.springframework.org/schema/beans/spring-beans-3.2.xsd 
+		http://www.springframework.org/schema/mvc 
+		http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd 
+		http://www.springframework.org/schema/context 
+		http://www.springframework.org/schema/context/spring-context-3.2.xsd 
+		http://www.springframework.org/schema/aop 
+		http://www.springframework.org/schema/aop/spring-aop-3.2.xsd 
+		http://www.springframework.org/schema/tx 
+		http://www.springframework.org/schema/tx/spring-tx-3.2.xsd ">
+<!-- 系统对于web.xml 里面配置，会优先读取context-param标签里面的配置文件，后读取servlet标签里面的配置文件，
+	加载事务时需注意加载的先后顺序，避免后加载的文件覆盖之前加载的内容导致 事务无法回滚 -->		
+<!-- 不扫描Controller -->
+<context:component-scan base-package="cn.itcast.ssm">
+	<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>  
+</context:component-scan>
+<!-- 事务管理器 
+	对mybatis操作数据库事务控制，spring使用jdbc的事务控制类
+-->
+<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+	<!-- 数据源
+	dataSource在applicationContext-dao.xml中配置了
+	 -->
+	<property name="dataSource" ref="dataSource"/>
+</bean>
+
+<!-- 通知 -->
+<!-- <tx:advice id="txAdvice" transaction-manager="transactionManager">
+	<tx:attributes>
+		传播行为
+		<tx:method name="save*" propagation="REQUIRED"/>
+		<tx:method name="delete*" propagation="REQUIRED"/>
+		<tx:method name="insert*" propagation="REQUIRED"/>
+		<tx:method name="update*" propagation="REQUIRED"/>
+		<tx:method name="find*" propagation="SUPPORTS" read-only="true"/>
+		<tx:method name="get*" propagation="SUPPORTS" read-only="true"/>
+		<tx:method name="select*" propagation="SUPPORTS" read-only="true"/>
+	</tx:attributes>
+</tx:advice> -->  
+<!-- aop -->
+<!-- <aop:config>
+	<aop:advisor advice-ref="txAdvice" pointcut="execution(* cn.itcast.ssm.service.impl.*.*(..))"/>
+</aop:config> -->
+
+<!-- 配置基于注解的声明式事务 -->  
+<tx:annotation-driven transaction-manager="transactionManager"/>
+
+
+	<bean id="helloWorld" class="test.HelloWorld">
+       <property name="message" value="Hello World!"/>
+	</bean>
+</beans>

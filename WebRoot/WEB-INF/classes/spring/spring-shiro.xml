@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+	<description>== Shiro Components ==</description>
+    
+	<!-- 会话Session ID生成器 -->
+	<bean id="sessionIdGenerator" class="org.apache.shiro.session.mgt.eis.JavaUuidSessionIdGenerator"/>
+
+	<!-- 会话Cookie模板 -->
+	<bean id="sessionIdCookie" class="org.apache.shiro.web.servlet.SimpleCookie">
+		<!--cookie的name，我故意取名叫xxxxbaidu maxAge=-1表示浏览器关闭时失效此Cookie；-->
+	    <constructor-arg value="v_v-lxj-baidu"/>
+	    <property name="httpOnly" value="true"/>
+	    <!--cookie的有效时间 -->
+	    <property name="maxAge" value="-1"/>
+	    <!-- 配置存储Session Cookie的domain为 一级域名
+	    <property name="domain" value=".itboy.net"/>
+	     -->
+	</bean>
+	<!-- custom shiro session listener -->
+	<bean id="customSessionListener" class="cn.itcast.ssm.shiro.listener.CustomSessionListener">
+	    <property name="shiroSessionRepository" ref="jedisShiroSessionRepository"/>
+	</bean>
+	<!-- 用户信息记住我功能的相关配置 -->
+	<bean id="rememberMeCookie" class="org.apache.shiro.web.servlet.SimpleCookie">
+	    <constructor-arg value="v_v-re-baidu"/>
+	    <property name="httpOnly" value="true"/>
+	    <!-- 配置存储rememberMe Cookie的domain为 一级域名
+	    <property name="domain" value=".itboy.net"/>
+	     -->
+	    <property name="maxAge" value="2592000"/><!-- 30天时间，记住我30天 -->
+	</bean>
+
+    <!-- rememberMe管理器 -->
+    <bean id="rememberMeManager" class="org.apache.shiro.web.mgt.CookieRememberMeManager">
+        <!-- rememberMe cookie加密的密钥 建议每个项目都不一样 默认AES算法 密钥长度（128 256 512 位）-->
+        <property name="cipherKey"
+                  value="#{T(org.apache.shiro.codec.Base64).decode('4AvVhmFLUs0KTA3Kprsdag==')}"/>                  					                                
+        <property name="cookie" ref="rememberMeCookie"/>
+    </bean>
+ 	
+ 	
+	<!-- custom shiro session listener -->
+	<bean id="customShiroSessionDAO" class="cn.itcast.ssm.shiro.CustomShiroSessionDAO">
+	    <property name="shiroSessionRepository" ref="jedisShiroSessionRepository"/>
+	    <property name="sessionIdGenerator" ref="sessionIdGenerator"/>
+	</bean>
+	<!-- 手动操作Session，管理Session -->
+	<bean id="customSessionManager" class="cn.itcast.ssm.shiro.session.CustomSessionManager">
+		<property name="shiroSessionRepository" ref="jedisShiroSessionRepository"/>
+		 <property name="customShiroSessionDAO" ref="customShiroSessionDAO"/>
+	</bean>
+ 
+	<!-- 会话验证调度器 -->
+	<bean id="sessionValidationScheduler" class="org.apache.shiro.session.mgt.ExecutorServiceSessionValidationScheduler">
+		 <!-- 间隔多少时间检查，不配置是60分钟 -->
+	     <property name="interval" value="${session.validate.timespan}"/>
+	     <property name="sessionManager" ref="sessionManager"/>
+	</bean>
+	<!-- 安全管理器 -->
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="realm" ref="sampleRealm"/>
+        <property name="sessionManager" ref="sessionManager"/>
+        <property name="rememberMeManager" ref="rememberMeManager"/>
+        <property name="cacheManager" ref="customShiroCacheManager"/>
+    </bean>
+	<!-- 用户缓存 -->
+	<bean id="customShiroCacheManager" class="cn.itcast.ssm.shiro.cache.impl.CustomShiroCacheManager">
+	    <property name="shiroCacheManager" ref="jedisShiroCacheManager"/>
+	</bean>
+	
+	<!-- shiro 缓存实现，对ShiroCacheManager，采用redis的实现 -->
+	<bean id="jedisShiroCacheManager" class="cn.itcast.ssm.shiro.cache.impl.JedisShiroCacheManager">
+	    <property name="jedisManager" ref="jedisManager"/>
+	</bean>
+	<!-- redis 的缓存 -->
+	<bean id="jedisManager" class="cn.itcast.ssm.shiro.cache.JedisManager">
+	    <property name="jedisPool" ref="jedisPool"/>
+	</bean>
+	<!-- 静态注入，相当于调用SecurityUtils.setSecurityManager(securityManager) -->
+	<bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+	    <property name="staticMethod" value="org.apache.shiro.SecurityUtils.setSecurityManager"/>
+	    <property name="arguments" ref="securityManager"/>
+	</bean>
+	<!-- session 校验单个用户是否多次登录 -->
+	<!-- <bean id="kickoutSessionFilter"   class="com.sojson.core.shiro.filter.KickoutSessionFilter">  
+	    <property name="kickoutUrl" value="/u/login.shtml?kickout"/>  
+	</bean>   -->
+	<!-- 静态注入 jedisShiroSessionRepository-->
+	<!-- <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+	    <property name="staticMethod" value="com.sojson.core.shiro.filter.KickoutSessionFilter.setShiroSessionRepository"/>
+	    <property name="arguments" ref="jedisShiroSessionRepository"/>
+	</bean> -->
+	
+	
+	
+	
+	<!-- 授权 认证 -->
+	<bean id="sampleRealm" class="cn.itcast.ssm.shiro.token.SampleRealm" >
+		<property name="cacheManager" ref="customShiroCacheManager"/>
+		<!-- authenticationCachingEnabled属性设置为true的话（默认false），若不调用logout，而再次调用login时，不会重新认证和授权（从缓存读取） -->
+        <!-- <property name="authenticationCachingEnabled" value="true"/> -->
+	</bean>
+
+<!-- <bean></bean> -->
+	
+	
+	<!-- Session Manager -->
+	<bean id="sessionManager" class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager">
+		<!-- 相隔多久检查一次session的有效性   -->
+	 	<property name="sessionValidationInterval" value="1800000"/>  
+	 	 <!-- session 有效时间为半小时 （毫秒单位）-->  
+		<!-- <property name="globalSessionTimeout" value="1800000"/> -->
+		<property name="globalSessionTimeout" value="180000000"/>
+	   <property name="sessionDAO" ref="customShiroSessionDAO"/>
+	   <!-- session 监听，可以多个。 -->
+	   <property name="sessionListeners">
+	       <list>
+	           <ref bean="customSessionListener"/>
+	       </list>
+	   </property>
+	   <!-- 间隔多少时间检查，不配置是60分钟 -->	
+	  <property name="sessionValidationScheduler" ref="sessionValidationScheduler"/>
+	  <!-- 是否开启 检测，默认开启 -->
+	  <property name="sessionValidationSchedulerEnabled" value="true"/>
+	   <!-- 是否删除无效的，默认也是开启 -->
+	  <property name="deleteInvalidSessions" value="true"/>
+		<!-- 会话Cookie模板 -->
+	   <property name="sessionIdCookie" ref="sessionIdCookie"/>
+	</bean>
+	<!-- session 创建、删除、查询 -->
+	<bean id="jedisShiroSessionRepository" class="cn.itcast.ssm.shiro.cache.JedisShiroSessionRepository" >
+		 <property name="jedisManager" ref="jedisManager"/>
+	</bean>
+
+	<!--
+		自定义角色过滤器 支持多个角色可以访问同一个资源 eg:/home.jsp = authc,roleOR[admin,user]
+		用户有admin或者user角色 就可以访问
+	-->
+	
+	<!-- 认证数据库存储-->
+    <!-- <bean id="shiroManager" class="com.sojson.core.shiro.service.impl.ShiroManagerImpl"/>
+    <bean id="login" class="com.sojson.core.shiro.filter.LoginFilter"/>
+    <bean id="role" class="com.sojson.core.shiro.filter.RoleFilter"/>
+    <bean id="permission" class="com.sojson.core.shiro.filter.PermissionFilter"/>
+    <bean id="simple" class="com.sojson.core.shiro.filter.SimpleAuthFilter"/> -->
+	
+	
+	<bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+	<!-- <bean id="shiroFilter" class="cn.itcast.ssm.shiro.filter.LoadMyShiroFilter"> -->
+		<property name="securityManager" ref="securityManager" />
+		<property name="loginUrl" value="/login.action?a=1" />
+		<!--	TODO 待提取	-->
+		<property name="successUrl" value="/main.action" />
+		<property name="unauthorizedUrl" value="/login.action?b=1" />
+		<!-- <property name="unauthorizedUrl" value="/?login" /> -->
+		
+<!--	初始配置，现采用自定义	
+
+	“/authenticated.jsp = authc”表示访问该地址用户必须身份验证通过（Subject. isAuthenticated()==true）；
+	而“/** = user”表示访问该地址的用户是身份验证通过或RememberMe登录的都可以。
+-->
+		<property name="filterChainDefinitions" >
+			<value>	
+				/login.action=anon		
+				/register.action=anon		
+				/loginSubmit.action=anon		
+				/**=authc				
+           </value>
+		</property>
+		<!-- 读取初始自定义权限内容-->
+       <!-- <property name="filterChainDefinitions" value="#{shiroManager.loadFilterChainDefinitions()}"/> -->   
+       <!-- <property name="filters">
+           <util:map>
+              <entry key="login" value-ref="login"></entry>
+              <entry key="role" value-ref="role"></entry>
+              <entry key="simple" value-ref="simple"></entry>
+              <entry key="permission" value-ref="permission"></entry>
+              <entry key="kickout" value-ref="kickoutSessionFilter"></entry>
+           </util:map>
+       </property> -->
+	</bean>
+	
+	<!--在使用Shiro注解的使用发现并不起作用
+	  原因：我是在controller中使用的Shiro注解，而且我的开启注解的配置写在了Spring的配置文件下，而我的Spring配置自动扫描的时候，过滤掉使用了Controller注解的类
+	  办法： 将配置1和2移动到springmvc.xml配置文件中 （）-->
+	<!-- Shiro生命周期处理器
+        1.配置lifecycleBeanPostProcessor，可以在Spring IOC容器中调用shiro的生命周期方法.
+                  保证实现了Shiro内部lifecycle函数的bean执行
+    -->	
+	<!-- <bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor" /> -->
+	<!--
+        2.启用Spring IOC容器Shiro注解，但必须配置了lifecycleBeanPostProcessor后才可以使用
+    -->
+	<!-- <bean id="defaultAdvisorAutoProxyCreator" class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator" depends-on="lifecycleBeanPostProcessor"/> -->
+	
+	<!--3.开启shiro aop shiro注解支持,使用代理方式;所以需要开启代码支持; -->
+	<!-- <bean id="authorizationAttributeSourceAdvisor" class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor" >
+		<property name="securityManager" ref="securityManager" />
+	</bean> -->
+	
+	
+	
+	<!-- ============================================================================ -->
+
+</beans>
+

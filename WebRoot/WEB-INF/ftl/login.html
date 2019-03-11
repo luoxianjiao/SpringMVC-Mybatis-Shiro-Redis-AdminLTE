@@ -1,0 +1,179 @@
+<!--login_page_identity-->
+<!--以上文件注释不可去掉，校验文件首页用,详见base.js的jquery.fn.load-->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="baidu_union_verify" content="804240c1607916fb8a8b98c6bcd2cfdb">
+    <meta name="keywords" content="AdminLTE,AdminEAP,AdminLTE框架">
+    <meta name="description" content="基于AdminLTE的快速开发框架,让web开发更简单">
+    <meta property="wb:webmaster" content="4f7a2b4a630250fe" />
+    <title>AdminEAP | 登录</title>
+    <!-- Tell the browser to be responsive to screen width -->
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <!--icon-->
+    <!-- <link rel="shortcut icon" type="image/x-icon" href="${basePath}/resources/common/favicon.ico" media="screen"/> -->
+    <!-- Bootstrap 3.3.6 -->
+    <link rel="stylesheet" href="${basePath}/resources/adminlte/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="${basePath}/resources/common/libs/font-awesome/css/font-awesome.min.css">
+    <!-- Ionicons -->
+    <link rel="stylesheet" href="${basePath}/resources/common/libs/ionicons/css/ionicons.min.css">
+    <!-- Theme style -->
+    <link rel="stylesheet" href="${basePath}/resources/adminlte/dist/css/AdminLTE.min.css">
+    <!-- iCheck -->
+    <link rel="stylesheet" href="${basePath}/resources/adminlte/plugins/iCheck/square/red.css">
+    <link rel="stylesheet" href="${basePath}/resources/adminlte/plugins/bootstrap-validator/dist/css/bootstrap-validator.css"/>
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+    <script src="${basePath}/resources/common/libs/html5shiv/html5shiv.min.js"></script>
+    <script src="${basePath}/resources/common/libs/respond/respond.min.js"></script>
+    <![endif]-->
+</head>
+<body class="hold-transition login-page">
+<div class="login-box">
+    <div class="login-logo">
+        <a href="#"><b>Admin</b>Manage</a>
+    </div>
+    <!-- /.login-logo -->
+    <div class="login-box-body">
+        <!-- <p class="login-box-msg">测试账号 test/bill</p> -->
+        <p class="login-box-msg"><strong>管理台登录</strong></p>
+
+        <form action="" method="post" id="login-form">
+            <div class="form-group has-feedback">
+                <input type="text" class="form-control"  id="username"  placeholder="请输入登录邮箱/登录名">
+                <span class="glyphicon glyphicon-envelope form-control-feedback"></span>
+            </div>
+            <div class="form-group has-feedback">
+                <input type="password" class="form-control" id="password" placeholder="请输入密码">
+                <span class="glyphicon glyphicon-lock form-control-feedback"></span>
+            </div>
+            <div class="row">
+                <div class="col-xs-6">
+                    <div class="checkbox icheck">
+                        <label>
+                            <input type="checkbox" id="rememberMe"> 记住用户
+                        </label>
+                    </div>
+                </div>
+                <!-- /.col -->
+                <div class="col-xs-6">
+                    <div class="checkbox pull-right">
+                        <a href="#">忘记密码</a>
+                        <span>&nbsp;/&nbsp;</span>
+                        <a href="javascript:void(0)" id="register" class="text-center">注册</a>
+                    </div>
+                </div>
+                <!-- /.col -->
+            </div>
+            <div class="row">
+                <div class="col-xs-12">
+                    <button type="button" id="login" class="btn btn-danger btn-block btn-flat">登 录</button>
+                </div>
+            </div>
+        </form>
+
+
+        <div class="social-auth-links" style="margin-bottom: 0px;">
+            <div class="row">
+                <div class="col-xs-5">
+                    <!-- <div class="text-left" style="margin-top: 5px;">快速登录</div> -->
+                </div>
+                <div class="col-xs-7">
+                    <div class="text-right">
+                        
+                    </div>
+                </div>
+            </div>
+            <!-- /.social-auth-links -->
+        </div>
+        <!-- /.login-box-body -->
+    </div>
+    <!-- /.login-box -->
+</div>
+    <!-- jQuery 2.2.3 -->
+    <script src="${basePath}/resources/adminlte/plugins/jQuery/jquery-2.2.3.min.js"></script>
+    <!-- Bootstrap 3.3.6 -->
+    <script src="${basePath}/resources/adminlte/bootstrap/js/bootstrap.min.js"></script>
+    <!-- iCheck -->
+    <script src="${basePath}/resources/adminlte/plugins/iCheck/icheck.min.js"></script>
+    <!-- bootstrap-validator-->
+    <script src="${basePath}/resources/adminlte/plugins/bootstrap-validator/dist/js/bootstrap-validator.js"></script>
+    <!--login.js-->
+    <script src="${basePath}/resources/common/js/login.js"></script>
+    <script  src="${basePath}/resources/js/common/MD5.js"></script>
+    <!-- <script  src="${basePath}/resources/js/common/supersized.3.2.7.min.js"></script>
+    <script  src="${basePath}/resources/js/common/supersized-init.js"></script> -->
+    <script  src="${basePath}/resources/js/common/layer/layer.js"></script>
+    <script>
+        $(function () {
+        	$('input').iCheck({
+                checkboxClass: 'icheckbox_square-red',
+                radioClass: 'iradio_square-red',
+                increaseArea: '20%' // optional
+            });
+        	//登录操作
+		    $('#login').click(function(){
+		    	
+		        var username = $('#username').val();
+		        var password = $('#password').val();
+		        if(username == '') {		            
+		        	layer.msg('请输入登录邮箱/登录名');
+	                $('#username').focus();
+		            
+		            return false;
+		        }
+		        if(password == '') {
+		            
+		        	layer.msg('请输入密码');
+	                $('#password').focus();
+		            
+		            return false;
+		        }
+		        var pswd = MD5(username +"#" + password),
+		        	data = {pswd:pswd,email:username,rememberMe:$("#rememberMe").is(':checked')};
+		        var load = layer.load();
+		        
+		        $.ajax({
+		        	url:"${basePath}/loginSubmit.action",
+		        	data:data,
+		        	type:"post",
+		        	dataType:"json",
+		        	beforeSend:function(){
+		        		layer.msg('开始登录，请注意后台控制台。');
+		        	},
+		        	success:function(result){
+			        	layer.close(load);
+			    		if(result && result.status != 0){
+			    			layer.msg(result.msg,function(){});
+			    			$('#password').val('');
+			    			return;
+			    		}else{
+			    			layer.msg('登录成功！');
+			    			setTimeout(function(){
+			    				//登录返回
+				    			window.location.href= result.back_url || "${basePath}/";
+			    			},1000)
+			    		}
+		        	},
+		        	error:function(e){
+		        		console.log(e,e.message);
+		        		layer.msg('请看后台Java控制台，是否报错，确定已经配置数据库和Redis',new Function());
+		        	}
+		        });
+		    });
+
+		    $('#register').click(function(){
+		    	window.location.href="${basePath}/register.action";
+		    });
+        });
+
+
+
+        
+    </script>
+</body>
+</html>

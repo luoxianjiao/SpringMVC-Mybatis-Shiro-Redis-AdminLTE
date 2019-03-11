@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.itcast.ssm.mapper.UUserMapperCustom" >
+
+   <!-- 定义商品查询的sql片段，就是商品查询条件 -->
+   <sql id="query_items_where">
+   	<!-- 使用动态sql，通过if判断，满足条件进行sql拼接 -->
+   	<!-- 商品查询条件通过ItemsQueryVo包装对象 中itemsCustom属性传递 -->
+   		<if test="itemsCustom!=null">
+   			<if test="itemsCustom.name!=null and itemsCustom.name!=''">
+   				items.name LIKE '%${itemsCustom.name}%'
+   			</if>
+   		</if>
+	
+   </sql>
+  	
+  	<!-- 菜单列表查询 -->
+  	<!-- parameterType传入包装对象(包装了查询条件)
+  		resultType建议使用扩展对象
+  	 -->
+  	<select id="getAllMenuList" parameterType="java.lang.Long"
+  		resultType="cn.itcast.ssm.po.UMenu">
+  		select * from u_menu  		
+  	</select> 
+  	
+  	<select id="findUserByEmail" parameterType="java.lang.String"
+  		 resultType="cn.itcast.ssm.po.ItemsCustom">
+  		SELECT items.* FROM items  
+  		<where>
+  			<include refid="query_items_where"></include>
+  		</where>
+  	</select>
+  	
+  	<!-- 登录认证 -->
+  <select id="login" resultType="cn.itcast.ssm.po.UUser" >
+  	 select *    
+    from u_user
+    where email = #{email,jdbcType=VARCHAR} and  pswd = #{pswd,jdbcType=VARCHAR} 
+  </select>
+  
+  
+  <select id="findRoleByUserId" resultType="java.lang.String">
+  		select r.type from u_role r,u_user_role ur where ur.roleId = r.roleId and ur.userId = #{userId,jdbcType=BIGINT}
+  </select>	
+  
+  <!-- 根据用ID查询permission -->
+  <select id="findPermissionByUserId" resultType="java.lang.String">
+  		select p.permission from u_permission p , u_role_permission rp, u_user_role ur 
+		where userId =#{userId,jdbcType=BIGINT} and p.permissionId = rp.permissionId and rp.roleId = ur.roleId
+  </select>
+  <!-- 查询用户角色分配列表 -->
+  <select id="findUserAndRole" resultType="cn.itcast.ssm.po.UserRoleAllocationBo" parameterType="java.lang.String">
+  		select u.userId, u.nickname, u.email, u.status, group_concat(ur.name separator ',') roleNames, CAST(group_concat(ur.roleId) AS char) AS roleIds from u_user u 
+		left join u_user_role uur on u.userId = uur.userId
+		left join u_role ur on uur.roleId = ur.roleId 		
+	<where>
+		<if test="_parameter != null and _parameter !='' ">
+			and (
+			lower(u.nickname) like lower(CONCAT("%",#{findContent,jdbcType=VARCHAR},"%"))
+			or
+			lower(u.email) like lower(CONCAT("%",#{findContent,jdbcType=VARCHAR},"%"))
+			) 
+		</if>
+	</where>
+		group by u.userId
+  </select>
+  
+  <!-- 选择角色给用户 ，checkbox 列表-->
+  <select id="selectRoleByUserId" resultType="cn.itcast.ssm.po.URoleBo" parameterType="java.lang.Long">  		
+		select ur.*, uur.userId from u_role ur 
+		left join (select userId, roleId from u_user_role where userId=#{userId,jdbcType=BIGINT}) uur on ur.roleId = uur.roleId		
+  </select>
+  
+  <!-- 查询角色权限列表 -->
+  <select id="findRoleAndPermission" resultType="cn.itcast.ssm.po.RolePermissionAllocationBo" parameterType="java.lang.String">
+  		select r.roleId, r.name, r.type, group_concat(p.description separator ',') permissionNames, CAST(group_concat(p.permissionId) AS char) AS permissionIds from u_role r 
+		left join u_role_permission urp on r.roleId = urp.roleId
+		left join u_permission p on urp.permissionId = p.permissionId		
+	<where>
+		<if test="_parameter != null and _parameter !='' ">
+			and (
+			lower(r.name) like lower(CONCAT("%",#{findContent,jdbcType=VARCHAR},"%"))
+			or
+			lower(r.type) like lower(CONCAT("%",#{findContent,jdbcType=VARCHAR},"%"))
+			) 
+		</if>
+	</where>
+		group by r.roleId
+  </select>
+  
+  <!-- 选择权限给角色 ，checkbox 列表-->
+  <select id="selectPermissionByRoleId" resultType="cn.itcast.ssm.po.UPermissionBo" parameterType="java.lang.Long">
+  		select up.*, urp.roleId from u_permission up
+		left join (select roleId, permissionId from u_role_permission where roleId=#{roleId,jdbcType=BIGINT}) urp on up.permissionId = urp.permissionId 
+  </select>
+  
+</mapper>
